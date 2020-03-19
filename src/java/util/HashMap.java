@@ -446,6 +446,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *      因为&和|都会使得结果偏向0或者1 ,并不是均匀的概念,所以用^
      *
      * 以上参考地址：https://blog.csdn.net/qq_42034205/article/details/90384772
+     *
+     * 哈希表的容量为什么为2^n？
+     *      减少哈希碰撞;
+     * 参考地址：https://www.jianshu.com/p/7cf2d6f1096b
      */
     static final int hash(Object key) {
         int h;
