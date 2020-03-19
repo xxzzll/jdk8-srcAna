@@ -435,6 +435,17 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * cheapest possible way to reduce systematic lossage, as well as
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
+     * 1、h >>> 16 是什么，有什么用?
+     *      h >>> 16：取出h的高16位
+     *
+     * 2、为什么 h = key.hashCode()) 与 (h >>> 16) 异或？
+     *
+     *      当长度为2^n，下标运算结果取决于哈希值的低n位。
+     *      数组下标一般会小于2^16，所以始终是哈希值的低16位参与运算，要高16参与运算，等到的下标就更散列。
+     * 3、为什么用^而不用&和|？
+     *      因为&和|都会使得结果偏向0或者1 ,并不是均匀的概念,所以用^
+     *
+     * 以上参考地址：https://blog.csdn.net/qq_42034205/article/details/90384772
      */
     static final int hash(Object key) {
         int h;
@@ -751,6 +762,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * HashMap put()方法的具体实现
      *
+     * tab[i = (n - 1) & hash] 作为数组下标，保证下标在[0, n-1]范围内
+     *
      * Implements Map.put and related methods
      *
      * @param hash hash for key
@@ -764,12 +777,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         Node<K,V>[] tab;
         Node<K,V> p;
         int n, i;
+        // table = {}，即初始化时，tab = new Node<K,V>[16]
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
+        // 新节点，要存放的位置上无其他值
         if ((p = tab[i = (n - 1) & hash]) == null)
             tab[i] = newNode(hash, key, value, null);
         else {
+        // 新节点，存放的位置有两种存放结构：双向链表 + 红黑树
             Node<K,V> e; K k;
+            // 重复key
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
@@ -790,6 +807,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     p = e;
                 }
             }
+            // 重复key，覆盖value
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
                 if (!onlyIfAbsent || oldValue == null)
@@ -799,7 +817,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
         ++modCount;
-        if (++size > threshold)
+        if (++size > threshold)// threshold = 数组容量(2^n) * 加载因子(0.75)
             resize();
         afterNodeInsertion(evict);
         return null;
@@ -848,7 +866,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         threshold = newThr;
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
-        table = newTab;
+        table = newTab; // 初始化时，返回一个长度为16的空数组：Node<K,V>[16]
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
